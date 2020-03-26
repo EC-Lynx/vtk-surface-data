@@ -1,70 +1,55 @@
 import vtk
 
 def main():
-    ugrid = MakePolyhedron()
+    ugrid = MakeHexahedron()
     writer = vtk.vtkUnstructuredGridWriter()
     writer.SetInputData(ugrid)
     writer.SetFileName("unstructured_grid.vtk")
     writer.Write()
 
-def MakePolyhedron():
+def MakeHexahedron():
     """
-      Make a regular dodecahedron. It consists of twelve regular pentagonal
-      faces with three faces meeting at each vertex.
-    """
-    # numberOfVertices = 20
-    numberOfFaces = 12
-    # numberOfFaceVertices = 5
+    Make a regular hexagon (cube) with all faces square and three squares
+     around each vertex.
 
+    Setup the coordinates of eight points
+     (faces must be in counter clockwise order as viewed from the outside).
+    """
+    numberOfFaces = 6
+
+    # Create the points
     points = vtk.vtkPoints()
-    points.InsertNextPoint(1.21412, 0, 1.58931)
-    points.InsertNextPoint(0.375185, 1.1547, 1.58931)
-    points.InsertNextPoint(-0.982247, 0.713644, 1.58931)
-    points.InsertNextPoint(-0.982247, -0.713644, 1.58931)
-    points.InsertNextPoint(0.375185, -1.1547, 1.58931)
-    points.InsertNextPoint(1.96449, 0, 0.375185)
-    points.InsertNextPoint(0.607062, 1.86835, 0.375185)
-    points.InsertNextPoint(-1.58931, 1.1547, 0.375185)
-    points.InsertNextPoint(-1.58931, -1.1547, 0.375185)
-    points.InsertNextPoint(0.607062, -1.86835, 0.375185)
-    points.InsertNextPoint(1.58931, 1.1547, -0.375185)
-    points.InsertNextPoint(-0.607062, 1.86835, -0.375185)
-    points.InsertNextPoint(-1.96449, 0, -0.375185)
-    points.InsertNextPoint(-0.607062, -1.86835, -0.375185)
-    points.InsertNextPoint(1.58931, -1.1547, -0.375185)
-    points.InsertNextPoint(0.982247, 0.713644, -1.58931)
-    points.InsertNextPoint(-0.375185, 1.1547, -1.58931)
-    points.InsertNextPoint(-1.21412, 0, -1.58931)
-    points.InsertNextPoint(-0.375185, -1.1547, -1.58931)
-    points.InsertNextPoint(0.982247, -0.713644, -1.58931)
+    points.InsertNextPoint(0.0, 0.0, 0.0)  # pid = 0
+    points.InsertNextPoint(1.0, 0.0, 0.0)  # pid = 1
+    points.InsertNextPoint(1.0, 1.0, 0.0)  # pid = 2
+    points.InsertNextPoint(0.0, 1.0, 0.0)  # pid = 3
+    points.InsertNextPoint(0.0, 0.0, 1.0)  # pid = 4
+    points.InsertNextPoint(1.0, 0.0, 1.0)  # pid = 5
+    points.InsertNextPoint(1.0, 1.0, 1.0)  # pid = 6
+    points.InsertNextPoint(0.0, 1.0, 1.0)  # pid = 7
 
+    # Create faces
     # Dimensions are [numberOfFaces][numberOfFaceVertices]
-    dodechedronFace = [
-        [0, 1, 2, 3, 4],
-        [0, 5, 10, 6, 1],
-        [1, 6, 11, 7, 2],
-        [2, 7, 12, 8, 3],
-        [3, 8, 13, 9, 4],
-        [4, 9, 14, 5, 0],
-        [15, 10, 5, 14, 19],
-        [16, 11, 6, 10, 15],
-        [17, 12, 7, 11, 16],
-        [18, 13, 8, 12, 17],
-        [19, 14, 9, 13, 18],
-        [19, 18, 17, 16, 15]
+    hexahedronFace = [
+        [0, 3, 2, 1],  # xy face normal to [0, 0, -1].
+        [4, 5, 6, 7],  # xy face normal to [0, 0, 1].
+        [0, 1, 5, 4],  # xz face normal to [0, -1, 0].
+        [2, 3 ,7, 6],  # xz face normal to [0, 1, 0].
+        [1, 2, 6, 5],  # yz face normal to [1, 0, 0].
+        [0, 4, 7, 3],  # yz face normal to [-1, 0, 0].
     ]
 
-    dodechedronFacesIdList = vtk.vtkIdList()
+    hexahedronFacesIdList = vtk.vtkIdList()
     # Number faces that make up the cell.
-    dodechedronFacesIdList.InsertNextId(numberOfFaces)
-    for face in dodechedronFace:
+    hexahedronFacesIdList.InsertNextId(numberOfFaces)
+    for face in hexahedronFace:
         # Number of points in the face == numberOfFaceVertices
-        dodechedronFacesIdList.InsertNextId(len(face))
+        hexahedronFacesIdList.InsertNextId(len(face))
         # Insert the pointIds for that face.
-        [dodechedronFacesIdList.InsertNextId(i) for i in face]
+        [hexahedronFacesIdList.InsertNextId(i) for i in face]
 
     uGrid = vtk.vtkUnstructuredGrid()
-    uGrid.InsertNextCell(vtk.VTK_POLYHEDRON, dodechedronFacesIdList)
+    uGrid.InsertNextCell(vtk.VTK_POLYHEDRON, hexahedronFacesIdList)
     uGrid.SetPoints(points)
 
     return uGrid
