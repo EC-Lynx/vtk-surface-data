@@ -2,6 +2,13 @@ import vtk
 
 def main():
     ugrid = MakeHexahedron()
+
+    # Add scalars to cell
+    scalars = vtk.vtkFloatArray()
+    scalars.InsertTuple1(0, 25)
+    scalars.SetName("testing")
+    cell_data = ugrid.GetCellData().SetScalars(scalars)
+
     writer = vtk.vtkUnstructuredGridWriter()
     writer.SetInputData(ugrid)
     writer.SetFileName("unstructured_grid.vtk")
