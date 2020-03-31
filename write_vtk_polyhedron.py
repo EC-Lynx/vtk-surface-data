@@ -37,17 +37,12 @@ def main():
     pgrid = MakePolygon(points3D, sqFaceConn)
 
     # Add scalars to ugrid cells
-    scalars = vtk.vtkFloatArray()
-    scalars.InsertTuple1(0, 25)
-    scalars.SetName("Volume")
-    ugrid.GetCellData().SetScalars(scalars)
+    volumeScalar = [25]
+    AddScalars(ugrid, volumeScalar, 'volume')
 
     # Add scalars to pgrid cells
-    surfaceScalar = vtk.vtkFloatArray()
-    surfaceScalar.InsertTuple1(0, 15)
-    surfaceScalar.InsertTuple1(1, 10)
-    surfaceScalar.SetName("Surface")
-    pgrid.GetCellData().SetScalars(surfaceScalar)
+    surfaceScalar = [15, 10]
+    AddScalars(pgrid, surfaceScalar, "surface")
 
     writer = vtk.vtkUnstructuredGridWriter()
     writer.SetInputData(ugrid)
@@ -140,6 +135,27 @@ def MakePolygon(points, faceConn):
     polyData.SetPolys(polygons)
 
     return polyData
+
+def AddScalars(vtkDataSet, scalar, name):
+    """
+    Add scalar values to cells of a vtk data set.
+
+    Parameters
+    ----------
+    vtkDataSet: datatype inherited from vtkDataSet class.
+      A vtk unstructured grid.
+    scalar: list
+      List of scalar values, where indices of each item in the list
+      corresponds to cell id.
+    name: string
+      Name of scalar field.
+    """
+
+    vtkScalar = vtk.vtkFloatArray()
+    for idx, val in enumerate(scalar):
+        vtkScalar.InsertTuple1(idx, val)
+    vtkScalar.SetName(name)
+    vtkDataSet.GetCellData().AddArray(vtkScalar)
 
 if __name__ == '__main__':
     main()
