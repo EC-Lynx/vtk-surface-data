@@ -2,16 +2,28 @@ import vtk
 
 def main():
     ugrid = MakeHexahedron()
+    pgrid = MakePolygon()
 
-    # Add scalars to cell
+    # Add scalars to ugrid cells
     scalars = vtk.vtkFloatArray()
     scalars.InsertTuple1(0, 25)
-    scalars.SetName("testing")
-    cell_data = ugrid.GetCellData().SetScalars(scalars)
+    scalars.SetName("Volume")
+    ugrid.GetCellData().SetScalars(scalars)
+
+    # Add scalars to pgrid cells
+    surfaceScalar = vtk.vtkFloatArray()
+    surfaceScalar.InsertTuple1(0, 15)
+    surfaceScalar.SetName("Surface")
+    pgrid.GetCellData().SetScalars(surfaceScalar)
 
     writer = vtk.vtkUnstructuredGridWriter()
     writer.SetInputData(ugrid)
     writer.SetFileName("unstructured_grid.vtk")
+    writer.Write()
+
+    writer = vtk.vtkPolyDataWriter()
+    writer.SetInputData(pgrid)
+    writer.SetFileName("polydata.vtk")
     writer.Write()
 
 def MakeHexahedron():
@@ -55,11 +67,52 @@ def MakeHexahedron():
         # Insert the pointIds for that face.
         [hexahedronFacesIdList.InsertNextId(i) for i in face]
 
+    surfaceFacesIdList = vtk.vtkIdList()
+    face=[0, 3, 2, 1]
+    surfaceFacesIdList.InsertNextId(len(face))
+    [surfaceFacesIdList.InsertNextId(i) for i in face]
+
     uGrid = vtk.vtkUnstructuredGrid()
     uGrid.InsertNextCell(vtk.VTK_POLYHEDRON, hexahedronFacesIdList)
+    uGrid.InsertNextCell(vtk.VTK_POLYGON, 4, face)
     uGrid.SetPoints(points)
 
     return uGrid
+
+def MakePolygon():
+    """
+    """
+
+    # Create the points
+    points = vtk.vtkPoints()
+    points.InsertNextPoint(0.0, 0.0, 0.0)  # pid = 0
+    points.InsertNextPoint(1.0, 0.0, 0.0)  # pid = 1
+    points.InsertNextPoint(1.0, 1.0, 0.0)  # pid = 2
+    points.InsertNextPoint(0.0, 1.0, 0.0)  # pid = 3
+    points.InsertNextPoint(0.0, 0.0, 1.0)  # pid = 4
+    points.InsertNextPoint(1.0, 0.0, 1.0)  # pid = 5
+    points.InsertNextPoint(1.0, 1.0, 1.0)  # pid = 6
+    points.InsertNextPoint(0.0, 1.0, 1.0)  # pid = 7
+
+    # Create faces
+    # Dimensions are [numberOfFaces][numberOfFaceVertices]
+    polygonFaces = [
+        [0, 3, 2, 1],  # xy face normal to [0, 0, -1].
+    ]
+
+    polygons = vtk.vtkCellArray()
+    for face in polygonFaces:
+        polygon = vtk.vtkPolygon()
+        polygon.GetPointIds().SetNumberOfIds(len(face))
+        for idx, pid in enumerate(face):
+            polygon.GetPointIds().SetId(idx, pid)
+        polygons.InsertNextCell(polygon)
+
+    polyData = vtk.vtkPolyData()
+    polyData.SetPoints(points)
+    polyData.SetPolys(polygons)
+
+    return polyData
 
 if __name__ == '__main__':
     main()
