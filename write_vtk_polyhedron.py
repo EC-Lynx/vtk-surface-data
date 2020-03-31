@@ -27,8 +27,14 @@ def main():
         ),
     ]
 
+    # face connectivity for polygon
+    sqFaceConn = [
+        [0, 3, 2, 1],  # xy face normal to [0, 0, -1].
+        [2, 3 ,7, 6],  # xz face normal to [0, 1, 0].
+    ]
+
     ugrid = MakePolyhedron(points3D, hexFaceConn)
-    pgrid = MakePolygon()
+    pgrid = MakePolygon(points3D, sqFaceConn)
 
     # Add scalars to ugrid cells
     scalars = vtk.vtkFloatArray()
@@ -39,6 +45,7 @@ def main():
     # Add scalars to pgrid cells
     surfaceScalar = vtk.vtkFloatArray()
     surfaceScalar.InsertTuple1(0, 15)
+    surfaceScalar.InsertTuple1(1, 10)
     surfaceScalar.SetName("Surface")
     pgrid.GetCellData().SetScalars(surfaceScalar)
 
@@ -49,21 +56,21 @@ def main():
 
     writer = vtk.vtkPolyDataWriter()
     writer.SetInputData(pgrid)
-    writer.SetFileName("polydata.vtk")
+    writer.SetFileName("surface_data.vtk")
     writer.Write()
 
-def MakePolyhedron(points, face_conn):
+def MakePolyhedron(points, faceConn):
     """
-    Make general polyhedron give points and the face connectivity that define
-    the cells of the polyhedron. Each the point indexes for each face
-    specified in ``face_conn`` must be in counter clockwise order as viewed
+    Make general polyhedron given points and the face connectivity that define
+    the cells of the polyhedron. The point indexes for each face
+    specified in ``faceConn`` must be in counter clockwise order as viewed
     from the outside.
 
     Parameters
     ----------
     points: list of tuples
       List of points that define the 3D space.
-    face_conn: list of tuples
+    faceConn: list of tuples
       Each tuple contains face connectivity information a cell.
       The structure of each tuple is
       (num faces, [pids of face 1], ... ,[pids of face Nth face])
@@ -79,7 +86,7 @@ def MakePolyhedron(points, face_conn):
     # add vtkPoints to uGrid.
     uGrid.SetPoints(pts)
 
-    for cell in face_conn:
+    for cell in faceConn:
         facesIdList = vtk.vtkIdList()
         # insert number of faces that make up the cell
         facesIdList.InsertNextId(cell[0])
@@ -93,37 +100,43 @@ def MakePolyhedron(points, face_conn):
 
     return uGrid
 
-def MakePolygon():
+def MakePolygon(points, faceConn):
     """
+    Make general polygon given points and the face connectivity that define
+    the cells of the polygon. The point indexes for each face
+    specified in ``faceConn`` must be in counter clockwise order as viewed
+    from the outside.
+
+    Parameters
+    ----------
+    points: list of tuples
+      List of points that define the 3D space.
+    faceConn: list of list
+      Each list contains connectivity information for a face.
     """
-
-    # Create the points
-    points = vtk.vtkPoints()
-    points.InsertNextPoint(0.0, 0.0, 0.0)  # pid = 0
-    points.InsertNextPoint(1.0, 0.0, 0.0)  # pid = 1
-    points.InsertNextPoint(1.0, 1.0, 0.0)  # pid = 2
-    points.InsertNextPoint(0.0, 1.0, 0.0)  # pid = 3
-    points.InsertNextPoint(0.0, 0.0, 1.0)  # pid = 4
-    points.InsertNextPoint(1.0, 0.0, 1.0)  # pid = 5
-    points.InsertNextPoint(1.0, 1.0, 1.0)  # pid = 6
-    points.InsertNextPoint(0.0, 1.0, 1.0)  # pid = 7
-
-    # Create faces
-    # Dimensions are [numberOfFaces][numberOfFaceVertices]
-    polygonFaces = [
-        [0, 3, 2, 1],  # xy face normal to [0, 0, -1].
-    ]
-
-    polygons = vtk.vtkCellArray()
-    for face in polygonFaces:
-        polygon = vtk.vtkPolygon()
-        polygon.GetPointIds().SetNumberOfIds(len(face))
-        for idx, pid in enumerate(face):
-            polygon.GetPointIds().SetId(idx, pid)
-        polygons.InsertNextCell(polygon)
 
     polyData = vtk.vtkPolyData()
-    polyData.SetPoints(points)
+
+    # populate vtkPoints
+    pts = vtk.vtkPoints()
+    for point in points:
+        pts.InsertNextPoint(point[0], point[1], point[2])
+
+    # add vtkPoints to polyData
+    polyData.SetPoints(pts)
+
+    polygons = vtk.vtkCellArray()
+    for face in faceConn:
+        polygon = vtk.vtkPolygon()
+        # insert number of pointIds defining a face.
+        polygon.GetPointIds().SetNumberOfIds(len(face))
+        # insert pointIds that define a face.
+        [polygon.GetPointIds().SetId(idx, pid) for
+            idx, pid in enumerate(face)]
+        # insert each polygon into polygons vtkCellArray.
+        polygons.InsertNextCell(polygon)
+
+    # insert polygons to polyData
     polyData.SetPolys(polygons)
 
     return polyData
