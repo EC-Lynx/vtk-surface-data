@@ -34,25 +34,18 @@ def main():
     ]
 
     ugrid = MakePolyhedron(points3D, hexFaceConn)
-    pgrid = MakePolygon(points3D, sqFaceConn)
-
     # Add scalars to ugrid cells
     volumeScalar = [25]
     AddScalars(ugrid, volumeScalar, 'volume')
+    # output file
+    WriteVtkXML(ugrid, 'volume', 'BINARY', 'ZLIB')
 
+    pgrid = MakePolygon(points3D, sqFaceConn)
     # Add scalars to pgrid cells
     surfaceScalar = [15, 10]
     AddScalars(pgrid, surfaceScalar, "surface")
-
-    writer = vtk.vtkUnstructuredGridWriter()
-    writer.SetInputData(ugrid)
-    writer.SetFileName("unstructured_grid.vtk")
-    writer.Write()
-
-    writer = vtk.vtkPolyDataWriter()
-    writer.SetInputData(pgrid)
-    writer.SetFileName("surface_data.vtk")
-    writer.Write()
+    # output file
+    WriteVtkXML(pgrid, 'surface', 'ASCII')
 
 def MakePolyhedron(points, faceConn):
     """
@@ -136,14 +129,14 @@ def MakePolygon(points, faceConn):
 
     return polyData
 
-def AddScalars(vtkDataSet, scalar, name):
+def AddScalars(vtkDataModel, scalar, name):
     """
     Add scalar values to cells of a vtk data set.
 
     Parameters
     ----------
-    vtkDataSet: datatype inherited from vtkDataSet class.
-      A vtk unstructured grid.
+    vtkDataModel: :class::vtkCommonDataModelPython.
+      A vtk unstructured grid or poly data.
     scalar: list
       List of scalar values, where indices of each item in the list
       corresponds to cell id.
@@ -155,7 +148,49 @@ def AddScalars(vtkDataSet, scalar, name):
     for idx, val in enumerate(scalar):
         vtkScalar.InsertTuple1(idx, val)
     vtkScalar.SetName(name)
-    vtkDataSet.GetCellData().AddArray(vtkScalar)
+    vtkDataModel.GetCellData().AddArray(vtkScalar)
+
+def WriteVtkXML(vtkDataModel, name, fmt='ASCII', compression=None):
+    """
+    Write XML out XML file with specified format and compression.
+
+    Parameters
+    ----------
+    vtkDataModel: :class::vtkCommonDataModelPython.
+      A vtk unstructured grid or poly data.
+    name: string
+      Name of output file.
+    fmt: string
+      Format of file - `'ASCII'` or `'BINARY'`. Defaults to `'ASCII'`.
+    compression: string
+      Compression only applied when `fmt` is `'BINARY'`. Compression
+      is defaulted to `None`. Available compression options are `'ZLIB'`, `'LZ4'`, and `'LZMA'`.
+    """
+
+    if isinstance(vtkDataModel, vtk.vtkUnstructuredGrid):
+        writer = vtk.vtkXMLUnstructuredGridWriter()
+        filename = name + '.vtu'
+    else:
+        writer = vtk.vtkXMLPolyDataWriter()
+        filename = name + '.vtp'
+
+    if fmt != 'ASCII':
+        if compression is None:
+            writer.SetCompressorTypeToNone()
+        elif compression is 'ZLIB':
+            writer.SetCompressorTypeToZLib()
+        elif compression is 'LZ4':
+            writer.SetCompressorTypeToLZ4()
+        elif compression is 'LZMA':
+            writer.SetCompressorTypeToLZMA()
+        else:
+            raise ValueError(f'Unrecognized compression type: {compression}')
+    else:
+        writer.SetDataModeToAscii()
+
+    writer.SetInputData(vtkDataModel)
+    writer.SetFileName(filename)
+    writer.Write()
 
 if __name__ == '__main__':
     main()
